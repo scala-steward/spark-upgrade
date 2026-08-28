@@ -3,8 +3,7 @@ package fix
 import scalafix.v1._
 import scala.meta._
 
-class GroupByKeyRenameColumnQQ
-    extends SemanticRule("GroupByKeyRenameColumnQQ") {
+class GroupByKeyRenameColumnQQ extends SemanticRule("GroupByKeyRenameColumnQQ") {
   override val description =
     """Renaming column "value" with "key" when have Dataset.groupByKey(...).count()"""
 
@@ -14,8 +13,8 @@ class GroupByKeyRenameColumnQQ
 
     def matchOnTerm(t: Term): Patch = {
       val p = t match {
-        case q""""value"""" => Patch.replaceTree(t, q""""key"""".toString())
-        case q"""'value"""  => Patch.replaceTree(t, q"""'key""".toString())
+        case q""""value""""      => Patch.replaceTree(t, q""""key"""".toString())
+        case q"""'value"""       => Patch.replaceTree(t, q"""'key""".toString())
         case q"""col("value")""" =>
           Patch.replaceTree(t, q"""col("key")""".toString())
         case q"""col("value").as""" =>
@@ -26,10 +25,10 @@ class GroupByKeyRenameColumnQQ
           Patch.replaceTree(t, q"""upper(col("key"))""".toString())
         case q"""upper(col('value))""" =>
           Patch.replaceTree(t, q"""upper(col('key))""".toString())
-        case _ if ! t.children.isEmpty =>
+        case _ if !t.children.isEmpty =>
           t.children.map {
             case e: scala.meta.Term => matchOnTerm(e)
-            case _ => Patch.empty
+            case _                  => Patch.empty
           }.asPatch
         case _ => Patch.empty
       }
@@ -45,15 +44,15 @@ class GroupByKeyRenameColumnQQ
 
     def isDSGroupByKey(t: Term): Boolean = {
       val isDataset = t.collect {
-        case q"""DataFame""" => true
-        case q"""Dataset""" => true
+        case q"""DataFame"""   => true
+        case q"""Dataset"""    => true
         case q"""Dataset[_]""" => true
-        case dsGBKmatcher(_) => true
-        case dfMatcher(_) => true
-        case dsMatcher(_) => true
-        case dsSelect(_) => true
-        case keyedDs(_) => true
-        case keyedDsCount(_) => true
+        case dsGBKmatcher(_)   => true
+        case dfMatcher(_)      => true
+        case dsMatcher(_)      => true
+        case dsSelect(_)       => true
+        case keyedDs(_)        => true
+        case keyedDsCount(_)   => true
       }
       val isGroupByKey = t.collect { case q"""groupByKey""" => true }
       (isGroupByKey.isEmpty.equals(false) && isGroupByKey.head.equals(
@@ -76,7 +75,7 @@ class GroupByKeyRenameColumnQQ
         case elem @ _ => {
           elem.children match {
             case Nil => Patch.empty
-            case _ => {
+            case _   => {
               elem.children.map(matchOnTree).asPatch
             }
           }
@@ -85,8 +84,10 @@ class GroupByKeyRenameColumnQQ
     }
 
     // Bit of a hack, but limit our blast radius
-    if (doc.input.text.contains("groupByKey") && doc.input.text.contains("value") &&
-      doc.input.text.contains("org.apache.spark.sql")) {
+    if (
+      doc.input.text.contains("groupByKey") && doc.input.text.contains("value") &&
+      doc.input.text.contains("org.apache.spark.sql")
+    ) {
       matchOnTree(doc.tree)
     } else {
       Patch.empty

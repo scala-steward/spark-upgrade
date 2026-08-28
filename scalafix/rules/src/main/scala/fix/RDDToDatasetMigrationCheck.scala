@@ -8,8 +8,7 @@ import scala.meta._
  * Dataset/DataFrame equivalent, so the surrounding RDD pipeline can not be
  * migrated to the Dataset API automatically.
  */
-case class RDDMigrationBlocked(tn: Tree, op: String, reason: String)
-    extends Diagnostic {
+case class RDDMigrationBlocked(tn: Tree, op: String, reason: String) extends Diagnostic {
   override def position: Position = tn.pos
 
   override def message: String =
@@ -53,8 +52,7 @@ case class RDDMigrationPossible(tn: Tree, ops: Seq[String]) extends Diagnostic {
  * functions are all detected. To stay conservative the rule treats any RDD API
  * it does not explicitly know about as blocking migration.
  */
-class RDDToDatasetMigrationCheck
-    extends SemanticRule("RDDToDatasetMigrationCheck") {
+class RDDToDatasetMigrationCheck extends SemanticRule("RDDToDatasetMigrationCheck") {
 
   override val description: String =
     "Checks whether the RDD usage in a file is simple enough to migrate to the " +
@@ -79,20 +77,43 @@ class RDDToDatasetMigrationCheck
   // entries in blockingReasons below instead. sortBy stays: orderBy/sort with a
   // column expression is a well-understood manual migration with no semantic trap.
   private val simpleOps: Set[String] = Set(
-    "map", "flatMap", "filter", "mapPartitions",
-    "foreach", "foreachPartition",
-    "distinct", "union", "intersection",
-    "count", "collect", "take", "first", "reduce",
-    "cache", "persist", "unpersist",
-    "coalesce", "repartition", "sortBy"
+    "map",
+    "flatMap",
+    "filter",
+    "mapPartitions",
+    "foreach",
+    "foreachPartition",
+    "distinct",
+    "union",
+    "intersection",
+    "count",
+    "collect",
+    "take",
+    "first",
+    "reduce",
+    "cache",
+    "persist",
+    "unpersist",
+    "coalesce",
+    "repartition",
+    "sortBy"
   )
 
   // RDD members that neither help nor hinder a migration (accessors / metadata).
   // They are ignored entirely so they do not block an otherwise simple pipeline.
   private val neutralOps: Set[String] = Set(
-    "sparkContext", "context", "id", "name", "setName", "partitions",
-    "getNumPartitions", "partitioner", "dependencies", "toDebugString",
-    "getStorageLevel", "preferredLocations"
+    "sparkContext",
+    "context",
+    "id",
+    "name",
+    "setName",
+    "partitions",
+    "getNumPartitions",
+    "partitioner",
+    "dependencies",
+    "toDebugString",
+    "getStorageLevel",
+    "preferredLocations"
   )
 
   // Known-complex operations, with a hint about how to migrate them. Anything
@@ -160,7 +181,7 @@ class RDDToDatasetMigrationCheck
 
   override def fix(implicit doc: SemanticDocument): Patch = {
     val rddOps: List[(Term.Name, String)] = doc.tree.collect {
-      case Term.Select(_, name) => rddOpName(name).map((name, _))
+      case Term.Select(_, name)         => rddOpName(name).map((name, _))
       case Term.ApplyInfix(_, op, _, _) => rddOpName(op).map((op, _))
     }.flatten
 

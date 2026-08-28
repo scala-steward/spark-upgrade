@@ -1,4 +1,25 @@
 sqlfluff==2.3.2
-flake8
+# sqlfluff 2.3.2 declares an unpinned `click`, but its click_deprecated_option
+# shim breaks on click >= 8.2 with
+#   ValueError: Expected `deprecated` value for `'disable_progress_bar'`
+# which makes `sqlfluff fix` die. That in turn makes the SparkSQLCallExternal
+# scalafix rule emit unrewritten SQL and fails the Scala testkit suite with what
+# looks like a Scala bug. CI used to dodge this only because the runner image
+# ships click 8.0.3 in /usr/lib/python3/dist-packages and pip left it alone.
+click<8.2
+# flake8 gates the whole repo now, so pin it for the same reason click is capped
+# above: an unpinned linter turns a green build red on an unrelated commit the
+# moment upstream enables a new default check. Bump deliberately.
+#
+# The plugins are pinned too, not just the frontend -- pinning flake8 alone would
+# not achieve the stated goal, because every E/W code is emitted by pycodestyle,
+# whose patch releases float freely inside flake8's >=2.14,<2.15 range. That
+# matters more here than usual: ./.flake8 uses `ignore` (replace semantics), which
+# switches ON seven codes flake8 disables by default, so a pycodestyle patch that
+# tightens E126 or E226 could turn the lint step red on a Scala-only commit.
+flake8==7.3.0
+pycodestyle==2.14.0
+pyflakes==3.4.0
+mccabe==0.7.0
 pytest
 autopep8

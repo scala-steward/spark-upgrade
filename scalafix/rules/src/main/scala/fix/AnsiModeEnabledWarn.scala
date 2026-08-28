@@ -22,9 +22,8 @@ class AnsiModeEnabledWarn extends SemanticRule("AnsiModeEnabledWarn") {
   override def fix(implicit doc: SemanticDocument): Patch = {
     // Attach a single hint where the SparkSession is built to avoid flagging every cast.
     if (doc.input.text.contains("SparkSession")) {
-      doc.tree.collect {
-        case t @ Term.Select(Term.Name("SparkSession"), Term.Name("builder")) =>
-          Patch.lint(AnsiModeEnabledWarning(t))
+      doc.tree.collect { case t @ Term.Select(Term.Name("SparkSession"), Term.Name("builder")) =>
+        Patch.lint(AnsiModeEnabledWarning(t))
       }.asPatch
     } else {
       Patch.empty

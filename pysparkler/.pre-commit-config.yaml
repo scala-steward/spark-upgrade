@@ -11,12 +11,28 @@ repos:
       - id: debug-statements
       - id: check-yaml
       - id: check-ast
-  - repo: https://github.com/ambv/black
+  - repo: https://github.com/psf/black
     rev: 23.3.0
     hooks:
       - id: black
-  - repo: https://github.com/pre-commit/mirrors-isort
-    rev: v5.10.1
+  # Was pre-commit/mirrors-isort, which has been archived since 2022 and so is
+  # frozen at isort 5.10.1 forever. PyCQA/isort ships the same hook id directly.
+  #
+  # The rev has to move to 5.13.2 as part of this swap, not stay at 5.10.1: the
+  # mirror's repo root is a stub setuptools package that just pins the isort
+  # wheel, whereas PyCQA/isort's root IS isort, so pre-commit builds it with
+  # poetry-core -- and isort 5.10.1's pyproject.toml declares an extra
+  # `pip-shims<=0.3.4`, which poetry-core rejects outright:
+  #   RuntimeError: The Poetry configuration is invalid:
+  #     - tool.poetry.extras.pipfile_deprecated_finder[2] must match pattern ...
+  # Pinning 5.10.1 here would therefore fail `make lint` on any cold
+  # ~/.cache/pre-commit (i.e. in CI, while a warm dev machine sees nothing).
+  #
+  # 5.13.2 is format-neutral for this repo: checked both versions against
+  # pysparkler's 31 tracked sources with --settings-path=pysparkler/pyproject.toml
+  # and each reports zero files to change.
+  - repo: https://github.com/PyCQA/isort
+    rev: 5.13.2
     hooks:
       - id: isort
         args:
@@ -41,7 +57,7 @@ repos:
       - id: pyupgrade
         args:
           - --py310-plus
-  - repo: https://github.com/pycqa/pylint
+  - repo: https://github.com/pylint-dev/pylint
     rev: v2.17.1
     hooks:
       - id: pylint
@@ -56,7 +72,7 @@ repos:
         additional_dependencies:
           - flake8-bugbear
           - flake8-comprehensions
-  - repo: https://github.com/executablebooks/mdformat
+  - repo: https://github.com/hukkin/mdformat
     rev: 0.7.17
     hooks:
       - id: mdformat

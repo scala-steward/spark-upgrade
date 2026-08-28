@@ -3,8 +3,7 @@ package fix
 import scalafix.v1._
 import scala.meta._
 
-class ScalaTestImportChange
-    extends SemanticRule("ScalaTestImportChange") {
+class ScalaTestImportChange extends SemanticRule("ScalaTestImportChange") {
   override val description =
     """Handle the import change with ScalaTest ( see https://www.scalatest.org/release_notes/3.1.0 ) """
 
@@ -31,13 +30,16 @@ class ScalaTestImportChange
         case q"""import org.scalatest.Matchers""" =>
           Patch.replaceTree(t, q"""import org.scalatest.matchers.should.Matchers""".toString())
         case q"""import org.scalatest.MustMatchers""" =>
-          Patch.replaceTree(t, q"""import org.scalatest.matchers.must.{Matchers => MustMatchers}""".toString)
+          Patch.replaceTree(
+            t,
+            q"""import org.scalatest.matchers.must.{Matchers => MustMatchers}""".toString
+          )
         case q"""import org.scalatest.MustMatchers._""" =>
           Patch.replaceTree(t, """import org.scalatest.matchers.must.Matchers._\n""")
         case elem @ _ =>
           elem.children match {
             case Nil => Patch.empty
-            case _ =>
+            case _   =>
               elem.children.map(matchOnTree).asPatch
           }
       }

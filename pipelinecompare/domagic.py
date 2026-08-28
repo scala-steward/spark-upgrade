@@ -1,5 +1,6 @@
 import argparse
 from utils import eprint, error
+import glob
 import uuid
 import asyncio
 import subprocess
@@ -361,10 +362,21 @@ elif args.iceberg:
 
         async def run_pipelines():
             script_path = os.path.realpath(os.path.dirname(__file__))
-            plugin_target_path = (f"{script_path}/../iceberg-spark-upgrade-wap-plugin" +
-                                  "/target/scala-2.12/")
-            java_agent_path = (plugin_target_path +
-                               "iceberg-spark-upgrade-wap-plugin_2.12-0.1.0-SNAPSHOT.jar")
+            # Glob rather than restate the Scala binary version, artifact name and
+            # project version by hand: that spelling goes stale the moment any of
+            # the three changes, and the symptom is a JVM that refuses to start
+            # ("Error opening zip file or JAR manifest missing") rather than
+            # anything pointing here. The build's own -javaagent option derives
+            # this path from sbt for the same reason.
+            plugin_root = f"{script_path}/../iceberg-spark-upgrade-wap-plugin"
+            candidates = [
+                j for j in glob.glob(f"{plugin_root}/target/scala-*/*.jar")
+                if not j.endswith(("-sources.jar", "-javadoc.jar"))
+            ]
+            if not candidates:
+                error(f"No WAP agent jar under {plugin_root}/target; "
+                      "run `sbt package` in that directory first.")
+            java_agent_path = max(candidates, key=os.path.getmtime)
             spark_extra_conf = f"--driver-java-options \"-javaagent:{java_agent_path}\""
             spark_extra_conf += " --conf spark.wap.id={WAP_ID}"
             spark_extra_conf_ctrl = spark_extra_conf.replace("{WAP_ID}", "42")

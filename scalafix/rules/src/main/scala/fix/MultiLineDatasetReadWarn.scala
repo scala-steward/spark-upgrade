@@ -21,13 +21,12 @@ class MultiLineDatasetReadWarn extends SemanticRule("MultiLineDatasetReadWarn") 
   override def fix(implicit doc: SemanticDocument): Patch = {
     // Imperfect, maybe someone will have the string "multiline" while reading from a DataFrame but it's an ok place to start.
     if (doc.input.text.contains("'multiline'") || doc.input.text.contains("\"multiline\"")) {
-      doc.tree.collect {
-        case matcher(read) =>
-          if (read.toString.contains("multiline")) {
-            Patch.lint(MultiLineDatasetReadWarning(read))
-          } else {
-            None.asPatch
-          }
+      doc.tree.collect { case matcher(read) =>
+        if (read.toString.contains("multiline")) {
+          Patch.lint(MultiLineDatasetReadWarning(read))
+        } else {
+          None.asPatch
+        }
       }.asPatch
     } else {
       Patch.empty

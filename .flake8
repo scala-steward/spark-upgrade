@@ -1,0 +1,57 @@
+[flake8]
+max-line-length = 100
+
+# `ignore` rather than `extend-ignore` on purpose: this REPLACES flake8's default
+# ignore list, which is what the previous `flake8 --ignore=E129,W504` invocation
+# did. Using extend-ignore would have quietly kept E121/E123/E126/E226/E24/E704
+# disabled as well -- a weaker gate than before, dressed up as a consolidation.
+#
+# W503 and W504 are mutually exclusive (break before vs after a binary operator),
+# so at least one has to go. Both are listed because this file is repo-wide, and
+# repo-wide includes pysparkler by a route that is easy to miss: pre-commit chdirs
+# to the git root before running its hooks, so pysparkler's flake8 hook discovers
+# THIS file. Its hook passes only --max-line-length=120, so `ignore` applies -- and
+# ignoring W504 alone switches W503 on, which is precisely the break style black
+# produces. Measured: 12 W503 findings across 5 black-formatted pysparkler files,
+# i.e. `make lint` would have gone red on files nothing had touched.
+ignore =
+    # E129: visually indented line with same indent as next logical line
+    E129,
+    # W503/W504: line break before/after a binary operator -- mutually exclusive,
+    # and black emits W503-style breaks.
+    W503,
+    W504
+
+per-file-ignores =
+    # Every over-long line in here is a Spark migration-guide URL in a comment.
+    # Wrapping a URL makes it unclickable and harder to keep in sync than just
+    # letting it run long.
+    conf_migrate/migrate.py: E501
+
+# `extend-exclude`, not `exclude`: the latter would replace flake8's defaults and
+# silently stop pruning .tox, .nox, .eggs, *.egg, .svn, CVS, .bzr and .hg -- the
+# same replace-vs-extend trap that `ignore` above deliberately opts into.
+extend-exclude =
+    build,
+    dist,
+    target,
+    .venv,
+    venv,
+    # pysparkler carries its own pre-commit config (black/isort/mypy/pylint at a
+    # 120 column limit); linting it twice at two different limits just fights.
+    # Note this only prunes flake8's own directory walk -- it does NOT apply when
+    # pre-commit passes those files by name, which is why W503 is ignored above.
+    pysparkler,
+    # TODO: pipelinecompare is not lint-clean yet -- it has 31 findings, some of
+    # which are real bugs rather than style (a TypeError-on-call helper, star
+    # imports hiding undefined names). Fixing those changes behaviour, so it is
+    # left out of the gate until that is done deliberately rather than as a
+    # drive-by. See spark_utils.drop_iceberg_internal_columns.
+    pipelinecompare,
+    # Third-party trees that dl_dependencies.sh extracts in place. The Spark
+    # binary distribution ships all of python/pyspark, so without these a bare
+    # `flake8` lints Spark itself after anyone has run the demo once. CI only
+    # escapes today because the lint step runs before the download steps.
+    e2e_demo/scala/spark-*,
+    e2e_demo/scala/hadoop-2*,
+    e2e_demo/scala/gradle-*

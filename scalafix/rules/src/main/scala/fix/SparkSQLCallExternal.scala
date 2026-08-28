@@ -2,7 +2,6 @@ package fix
 
 import java.io._
 
-
 import scalafix.v1._
 import scala.meta._
 import sys.process._
@@ -51,7 +50,7 @@ class SparkSQLCallExternal extends SemanticRule("SparkSQLCallExternal") {
         case elem @ _ =>
           elem.children match {
             case Nil => Patch.empty
-            case _ => elem.children.map(matchOnTree).asPatch
+            case _   => elem.children.map(matchOnTree).asPatch
           }
       }
     }

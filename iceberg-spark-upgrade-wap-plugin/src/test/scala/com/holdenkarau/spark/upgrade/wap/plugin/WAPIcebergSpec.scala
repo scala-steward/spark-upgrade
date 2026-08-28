@@ -24,19 +24,21 @@ class WAPIcebergSpec extends AnyFunSuite with ScalaDataFrameSuiteBase with Match
   override protected def enableIcebergSupport = true
 
   override def conf: SparkConf = {
-    new SparkConf().
-      setMaster("local[*]").
-      setAppName("test").
-      set("spark.ui.enabled", "false").
-      set("spark.app.id", appID).
-      set("spark.driver.host", "localhost").
+    new SparkConf()
+      .setMaster("local[*]")
+      .setAppName("test")
+      .set("spark.ui.enabled", "false")
+      .set("spark.app.id", appID)
+      .set("spark.driver.host", "localhost")
+      .
       // Hack
-      set("spark.driver.userClassPathFirst", "true").
-      set("spark.executor.userClassPathFirst", "true")
+      set("spark.driver.userClassPathFirst", "true")
+      .set("spark.executor.userClassPathFirst", "true")
   }
 
   test("WAPIcebergSpec should be called on iceberg commit") {
-    val re = """IcebergListener: Created snapshot (\d+) on table (.+?) summary .*? from operation (.+)""".r
+    val re =
+      """IcebergListener: Created snapshot (\d+) on table (.+?) summary .*? from operation (.+)""".r
     spark.sql("CREATE TABLE local.db.table (id bigint, data string) USING iceberg")
     // there _might be_ a timing race condition here since were using a listener
     // that is not blocking the write path.
@@ -47,8 +49,8 @@ class WAPIcebergSpec extends AnyFunSuite with ScalaDataFrameSuiteBase with Match
     firstLog match {
       case re(snapshot, table, op) =>
         snapshot.toLong should be > 0L
-        table should be ("local.db.table")
-        op should be ("append")
+        table should be("local.db.table")
+        op should be("append")
     }
     spark.sql("INSERT INTO local.db.table VALUEs (2, 'timbot')")
     Thread.sleep(delay)

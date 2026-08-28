@@ -3,7 +3,8 @@ package fix
 import scalafix.v1._
 import scala.meta._
 
-class MigrateDeprecatedDataFrameReaderFuns extends SemanticRule("MigrateDeprecatedDataFrameReaderFuns") {
+class MigrateDeprecatedDataFrameReaderFuns
+    extends SemanticRule("MigrateDeprecatedDataFrameReaderFuns") {
 
   override def fix(implicit doc: SemanticDocument): Patch = {
     val readerMatcher = SymbolMatcher.normalized("org.apache.spark.sql.DataFrameReader")
@@ -15,7 +16,10 @@ class MigrateDeprecatedDataFrameReaderFuns extends SemanticRule("MigrateDeprecat
         case ns @ Term.Apply(jsonReaderMatcher(reader), List(param)) =>
           param match {
             case utils.rddMatcher(rdd) =>
-              (Patch.addLeft(rdd, "session.createDataset(") + Patch.addRight(rdd, ")(Encoders.STRING)") +
+              (Patch.addLeft(rdd, "session.createDataset(") + Patch.addRight(
+                rdd,
+                ")(Encoders.STRING)"
+              ) +
                 utils.addImportIfNotPresent(importer"org.apache.spark.sql.Encoders"))
             case _ =>
               Patch.empty
@@ -23,7 +27,7 @@ class MigrateDeprecatedDataFrameReaderFuns extends SemanticRule("MigrateDeprecat
         case elem @ _ =>
           elem.children match {
             case Nil => Patch.empty
-            case _ => elem.children.map(matchOnTree).asPatch
+            case _   => elem.children.map(matchOnTree).asPatch
           }
       }
     }

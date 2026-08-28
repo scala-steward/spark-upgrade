@@ -6,8 +6,11 @@ import scala.meta._
 class ExpressionEncoder extends SemanticRule("ExpressionEncoder") {
 
   override def fix(implicit doc: SemanticDocument): Patch = {
-    val toRowMatcher = SymbolMatcher.normalized("org/apache/spark/sql/catalyst/encoders/ExpressionEncoder#toRow().")
-    val fromRowMatcher = SymbolMatcher.normalized("org/apache/spark/sql/catalyst/encoders/ExpressionEncoder#fromRow().")
+    val toRowMatcher =
+      SymbolMatcher.normalized("org/apache/spark/sql/catalyst/encoders/ExpressionEncoder#toRow().")
+    val fromRowMatcher = SymbolMatcher.normalized(
+      "org/apache/spark/sql/catalyst/encoders/ExpressionEncoder#fromRow()."
+    )
     val utils = new Utils()
 
     def matchOnTree(e: Tree): Patch = {
@@ -25,7 +28,7 @@ class ExpressionEncoder extends SemanticRule("ExpressionEncoder") {
         case elem @ _ =>
           elem.children match {
             case Nil => Patch.empty
-            case _ => elem.children.map(matchOnTree).asPatch
+            case _   => elem.children.map(matchOnTree).asPatch
           }
       }
     }

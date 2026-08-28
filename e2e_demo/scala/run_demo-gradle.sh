@@ -37,7 +37,13 @@ cd ..
 
 INITIAL_VERSION=${INITIAL_VERSION:-2.4.8}
 TARGET_VERSION=${TARGET_VERSION:-3.3.1}
-SCALAFIX_RULES_VERSION=${SCALAFIX_RULES_VERSION:-0.1.13}
+# Fallback for running the demo by hand; CI overrides this with the version it
+# just built. Keep it in step with run_demo.sh -- the two had drifted to
+# 0.1.13/0.1.15, so the two demos were exercising different releases of the rules.
+# `export` matters: update_gradle_build.py reads this via os.getenv, and without it
+# the fallback set here is invisible to that child process, which would silently
+# fall back again to its own default.
+export SCALAFIX_RULES_VERSION=${SCALAFIX_RULES_VERSION:-0.1.15}
 outputTable="local.newest_farttable_gradle"
 
 SPARK2_DETAILS="spark-2.4.8-bin-without-hadoop-scala-2.12"

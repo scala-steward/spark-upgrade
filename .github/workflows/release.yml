@@ -3,14 +3,32 @@ on:
   push:
     branches: [master, main]
     tags: ["*"]
+
+permissions:
+  contents: read
+
 jobs:
   publish:
-    runs-on: ubuntu-20.04
+    # This was ubuntu-20.04, which GitHub has retired. A job asking for a retired
+    # label is never assigned a runner: it just sits queued until the 24h ceiling
+    # and is reported as "cancelled". Every main push since the retirement did
+    # that, so the scalafix rules stopped being released entirely (dynver is at
+    # 0.1.15+50, i.e. 50 commits past the last published tag) without anything
+    # ever going red.
+    runs-on: ubuntu-22.04
+    timeout-minutes: 60
     steps:
-      - uses: actions/checkout@v3.0.2
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - uses: olafurpg/setup-scala@v13
+      # olafurpg/setup-scala is unmaintained (last commit 2023) and wraps Jabba.
+      # setup-java + setup-sbt is the supported path, and it lets us pin the JDK
+      # instead of inheriting the image default.
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '11'
+      - uses: sbt/setup-sbt@v1
       - name: Release 2.4.8 -> 3.3
         run: |
           cd scalafix
@@ -40,9 +58,10 @@ jobs:
           SONATYPE_USERNAME: ${{ secrets.SONATYPE_USERNAME }}
   pypi-publish-pysparkler:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - name: Checkout PySparkler
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
       - name: Publish PySparkler Package on PyPI

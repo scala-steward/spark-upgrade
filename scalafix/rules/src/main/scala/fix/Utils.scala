@@ -7,6 +7,7 @@ import scala.collection.mutable.HashSet
 import scala.reflect.ClassTag
 
 case class Utils()(implicit val doc: SemanticDocument) {
+
   /**
    * Match an RDD. Just the symbol matcher alone misses some cases so we also
    * look at type signatures etc.
@@ -19,7 +20,7 @@ case class Utils()(implicit val doc: SemanticDocument) {
     def unapplyMatcher(matcher: SymbolMatcher, param: Term) = {
       param match {
         case matcher(e) => Some(e)
-        case _ =>
+        case _          =>
           param.symbol.info match {
             case None =>
               None
@@ -30,7 +31,7 @@ case class Utils()(implicit val doc: SemanticDocument) {
                     case TypeRef(_, symbol, _) =>
                       symbol match {
                         case matcher(e) => Some(param)
-                        case _ => None
+                        case _          => None
                       }
                     case _ =>
                       None
@@ -51,28 +52,24 @@ case class Utils()(implicit val doc: SemanticDocument) {
     override def unapply(param: Term) = {
       param match {
         case e: T => Some(e)
-        case _ => super.unapply(param)
+        case _    => super.unapply(param)
       }
     }
   }
 
+  object intMatcher extends MagicMatcherLit[Lit.Int](List(SymbolMatcher.normalized("scala.Int")))
+  object longMatcher extends MagicMatcherLit[Lit.Long](List(SymbolMatcher.normalized("scala.Long")))
+  object doubleMatcher
+      extends MagicMatcherLit[Lit.Double](List(SymbolMatcher.normalized("scala.Double")))
 
-  object intMatcher extends MagicMatcherLit[Lit.Int](
-    List(SymbolMatcher.normalized("scala.Int")))
-  object longMatcher extends MagicMatcherLit[Lit.Long](
-    List(SymbolMatcher.normalized("scala.Long")))
-  object doubleMatcher extends MagicMatcherLit[Lit.Double](
-    List(SymbolMatcher.normalized("scala.Double")))
+  object rddMatcher
+      extends MagicMatcher(List(SymbolMatcher.normalized("org.apache.spark.rdd.RDD#")))
 
-  object rddMatcher extends MagicMatcher(
-    List(SymbolMatcher.normalized("org.apache.spark.rdd.RDD#")))
-
-  lazy val imports = HashSet(doc.tree.collect {
-    case Importer(term, importees) =>
-        importees.map {
-          importee => (term.toString(), importee.toString())
-        }
-    }.flatten:_*)
+  lazy val imports = HashSet(doc.tree.collect { case Importer(term, importees) =>
+    importees.map { importee =>
+      (term.toString(), importee.toString())
+    }
+  }.flatten: _*)
 
   private val importSplitRegex = "(.*?)\\.([a-zA-Z0-9_]+)".r
 
@@ -92,8 +89,8 @@ case class Utils()(implicit val doc: SemanticDocument) {
         } else {
           importElem match {
             case Importer(term, importees) =>
-              imports ++= importees.map {
-                importee => (term.toString(), importee.toString())
+              imports ++= importees.map { importee =>
+                (term.toString(), importee.toString())
               }
           }
           Patch.addGlobalImport(importElem)

@@ -13,6 +13,30 @@ java {
 }
 
 repositories {
+    // CI publishes the migration rules built from the current commit into the
+    // local maven repo (sbt publishM2) and passes that version in through
+    // SCALAFIX_RULES_VERSION, so this has to be resolvable or the demo silently
+    // falls back to whatever is already on Maven Central.
+    //
+    // Content-filtered, not bare. A bare mavenLocal() is consulted first for EVERY
+    // module, so a half-written or hand-edited ~/.m2 entry for, say, spark-sql_2.12
+    // would silently be preferred over Central and the migration comparison would
+    // be meaningless -- the same reason the WAP build drops Resolver.mavenLocal
+    // ("depend on whatever happens to be in the developer's ~/.m2").
+    //
+    // Filtered by module rather than by group, and NOT via exclusiveContent, both on
+    // purpose: spark-testing-base below is also com.holdenkarau and must still come
+    // from Central, and when the demo is run by hand without a local publish the
+    // rules themselves resolve from Central too.
+    //
+    // NB: do not write the name of the rewrite tool in this file. update_gradle_build.py
+    // decides whether to inject the Gradle plugin with a bare
+    // `if "<toolname>" not in build_with_plugin` substring test over the whole
+    // file, so mentioning it in a comment silently suppresses the injection and
+    // the demo then has no such task to run.
+    mavenLocal {
+        content { includeModuleByRegex("com\\.holdenkarau", "spark-.*-rules-.*") }
+    }
     mavenCentral()
     maven {
         name "sonatype-releases"

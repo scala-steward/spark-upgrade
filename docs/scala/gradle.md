@@ -6,7 +6,7 @@ I've tried to update your build file for you, but there might be some mistakes. 
 
 Add
 ``
-	scalafix group: "com.holdenkarau", name: 'spark-scalafix-rules-2.4.8_2.12', version: '0.1.13'
+	scalafix group: "com.holdenkarau", name: 'spark-scalafix-rules-2.4.8_2.12', version: '0.1.15'
 ``
 to your dependencies
 

@@ -7,7 +7,8 @@ class MigrateHiveContext extends SemanticRule("MigrateHiveContext") {
 
   override def fix(implicit doc: SemanticDocument): Patch = {
     val hiveSymbolMatcher = SymbolMatcher.normalized("org.apache.spark.sql.hive.HiveContext")
-    val hiveGetOrCreateMatcher = SymbolMatcher.normalized("org.apache.spark.sql.hive.HiveContext.getOrCreate")
+    val hiveGetOrCreateMatcher =
+      SymbolMatcher.normalized("org.apache.spark.sql.hive.HiveContext.getOrCreate")
     val newCreateHive = "SparkSession.builder.enableHiveSupport().getOrCreate().sqlContext"
     val utils = new Utils()
     def matchOnTree(e: Tree): Patch = {
@@ -17,35 +18,41 @@ class MigrateHiveContext extends SemanticRule("MigrateHiveContext") {
           initArgs match {
             case (hiveSymbolMatcher(_), _, _) =>
               List(
-                Patch.replaceTree(
-                  ns,
-                  newCreateHive),
-                  // TODO Add SparkSession import if missing -- addGlobalImport is broken
-                  // Patch.addGlobalImport(importer"org.apache.spark.sql.SparkSession")
+                Patch.replaceTree(ns, newCreateHive),
+                // TODO Add SparkSession import if missing -- addGlobalImport is broken
+                // Patch.addGlobalImport(importer"org.apache.spark.sql.SparkSession")
                 utils.addImportIfNotPresent(importer"org.apache.spark.sql.SparkSession")
               ).asPatch
             case _ => Patch.empty
           }
         case ns @ Term.Apply(hiveGetOrCreateMatcher(_), _) =>
           List(
-            Patch.replaceTree(
-              ns,
-              newCreateHive),
-              // TODO Add SparkSession import if missing -- addGlobalImport is broken
-              // Patch.addGlobalImport(importer"org.apache.spark.sql.SparkSession")
-              utils.addImportIfNotPresent(importer"org.apache.spark.sql.SparkSession")
+            Patch.replaceTree(ns, newCreateHive),
+            // TODO Add SparkSession import if missing -- addGlobalImport is broken
+            // Patch.addGlobalImport(importer"org.apache.spark.sql.SparkSession")
+            utils.addImportIfNotPresent(importer"org.apache.spark.sql.SparkSession")
           ).asPatch
 
         // HiveContext type name rewrite to SQLContext
         // There should be a way to combine these two rules right?
         // Ideally we could rewrite the import to SqlContext symbol.
-        case Import(List(
-          Importer(Term.Select(Term.Select(Term.Select(
-            Term.Select(Term.Name("org"), Term.Name("apache")),
-            Term.Name("spark")),
-            Term.Name("sql")),
-            Term.Name("hive")),
-            List(hiveImports)))) =>
+        case Import(
+              List(
+                Importer(
+                  Term.Select(
+                    Term.Select(
+                      Term.Select(
+                        Term.Select(Term.Name("org"), Term.Name("apache")),
+                        Term.Name("spark")
+                      ),
+                      Term.Name("sql")
+                    ),
+                    Term.Name("hive")
+                  ),
+                  List(hiveImports)
+                )
+              )
+            ) =>
           // Remove HiveContext it's deprecated
           hiveImports.collect {
             case i @ Importee.Name(Name("HiveContext")) =>
@@ -67,7 +74,7 @@ class MigrateHiveContext extends SemanticRule("MigrateHiveContext") {
         case elem @ _ =>
           elem.children match {
             case Nil => Patch.empty
-            case _ => elem.children.map(matchOnTree).asPatch
+            case _   => elem.children.map(matchOnTree).asPatch
           }
       }
     }

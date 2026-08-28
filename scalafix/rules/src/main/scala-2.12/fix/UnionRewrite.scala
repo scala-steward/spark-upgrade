@@ -6,7 +6,7 @@ import scalafix.v1._
 
 import scala.meta._
 final case class UnionRewriteConfig(
-  deprecatedMethod: Map[String, String]
+    deprecatedMethod: Map[String, String]
 )
 
 object UnionRewriteConfig {
@@ -37,25 +37,25 @@ class UnionRewrite(config: UnionRewriteConfig) extends SemanticRule("UnionRewrit
     def matchOnTree(t: Tree): Patch = {
       t.collect {
         case Term.Apply(
-            Term.Select(_, deprecated @ Term.Name(name)),
-            _
+              Term.Select(_, deprecated @ Term.Name(name)),
+              _
             ) if config.deprecatedMethod.contains(name) =>
           Patch.replaceTree(
             deprecated,
             config.deprecatedMethod(name)
           )
         case Term.Apply(
-            Term.Select(_, _ @Term.Name(name)),
-            List(
-              Term.AnonymousFunction(
-                Term.ApplyInfix(
-                  _,
-                  deprecatedAnm @ Term.Name(nameAnm),
-                  _,
-                  _
+              Term.Select(_, _ @Term.Name(name)),
+              List(
+                Term.AnonymousFunction(
+                  Term.ApplyInfix(
+                    _,
+                    deprecatedAnm @ Term.Name(nameAnm),
+                    _,
+                    _
+                  )
                 )
               )
-            )
             ) if "reduce".contains(name) && config.deprecatedMethod.contains(nameAnm) =>
           Patch.replaceTree(
             deprecatedAnm,

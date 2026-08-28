@@ -86,12 +86,24 @@ class RDDToDatasetMigration extends SemanticRule("RDDToDatasetMigration") {
   // AND runtime semantics, so the call text can be left as-is once the receiver
   // is a Dataset. Audited against the Spark 3.x Dataset/RDD APIs.
   private val nameIdenticalOps: Set[String] = Set(
-    "map", "flatMap", "filter", "mapPartitions",
-    "foreach", "foreachPartition",
-    "distinct", "union",
-    "count", "collect", "take", "first", "reduce",
-    "cache", "persist", "unpersist",
-    "coalesce", "repartition"
+    "map",
+    "flatMap",
+    "filter",
+    "mapPartitions",
+    "foreach",
+    "foreachPartition",
+    "distinct",
+    "union",
+    "count",
+    "collect",
+    "take",
+    "first",
+    "reduce",
+    "cache",
+    "persist",
+    "unpersist",
+    "coalesce",
+    "repartition"
   )
 
   // Binary ops: the argument is another RDD, which must also become a Dataset,
@@ -102,9 +114,9 @@ class RDDToDatasetMigration extends SemanticRule("RDDToDatasetMigration") {
   // Ops that match Dataset only up to a maximum argument count; beyond it the
   // Dataset signature differs (won't compile), so block at that arity.
   private val maxSafeArgs: Map[String, Int] = Map(
-    "coalesce" -> 1,      // Dataset.coalesce(n); RDD.coalesce(n, shuffle)
-    "distinct" -> 0,      // Dataset.distinct();  RDD.distinct(n)
-    "mapPartitions" -> 1  // Dataset.mapPartitions(f); RDD.mapPartitions(f, preserves)
+    "coalesce" -> 1, // Dataset.coalesce(n); RDD.coalesce(n, shuffle)
+    "distinct" -> 0, // Dataset.distinct();  RDD.distinct(n)
+    "mapPartitions" -> 1 // Dataset.mapPartitions(f); RDD.mapPartitions(f, preserves)
   )
 
   // RDD operations whose Dataset spelling differs but is faithful; renamed in place.
@@ -172,7 +184,7 @@ class RDDToDatasetMigration extends SemanticRule("RDDToDatasetMigration") {
   /** RDD ops used as an eta-expanded method value (`rdd.map _`), which can't be swapped safely. */
   private def etaOps(implicit doc: SemanticDocument): List[Term.Name] =
     doc.tree.collect {
-      case Term.Eta(Term.Select(_, name)) if rddOpName(name).isDefined => name
+      case Term.Eta(Term.Select(_, name)) if rddOpName(name).isDefined                    => name
       case Term.Eta(Term.ApplyType(Term.Select(_, name), _)) if rddOpName(name).isDefined => name
     }
 
@@ -195,13 +207,17 @@ class RDDToDatasetMigration extends SemanticRule("RDDToDatasetMigration") {
   private def isConvertibleOriginCall(t: Term)(implicit doc: SemanticDocument): Boolean =
     t match {
       case Term.Apply(Term.Select(_, name @ Term.Name(m)), _)
-          if (m == "parallelize" || m == "makeRDD" || m == "textFile") && isSparkContextMethod(name) =>
+          if (m == "parallelize" || m == "makeRDD" || m == "textFile") && isSparkContextMethod(
+            name
+          ) =>
         true
       case Term.Apply(Term.ApplyType(Term.Select(_, name @ Term.Name(m)), _), _)
-          if (m == "parallelize" || m == "makeRDD" || m == "textFile") && isSparkContextMethod(name) =>
+          if (m == "parallelize" || m == "makeRDD" || m == "textFile") && isSparkContextMethod(
+            name
+          ) =>
         true
       case Term.Select(_, name @ Term.Name("rdd")) if isDatasetRdd(name) => true
-      case _ => false
+      case _                                                             => false
     }
 
   /**
@@ -232,7 +248,8 @@ class RDDToDatasetMigration extends SemanticRule("RDDToDatasetMigration") {
           valDefRhs(n).exists(rhs => tracesToDataset(rhs, seen + n.symbol.value))
         case Term.Apply(Term.Select(recv, name), _) if rddOpName(name).isDefined =>
           tracesToDataset(recv, seen)
-        case Term.Apply(Term.ApplyType(Term.Select(recv, name), _), _) if rddOpName(name).isDefined =>
+        case Term.Apply(Term.ApplyType(Term.Select(recv, name), _), _)
+            if rddOpName(name).isDefined =>
           tracesToDataset(recv, seen)
         case Term.ApplyInfix(lhs, op, _, _) if rddOpName(op).isDefined =>
           tracesToDataset(lhs, seen)
@@ -247,8 +264,8 @@ class RDDToDatasetMigration extends SemanticRule("RDDToDatasetMigration") {
   // re-infer T from the argument alone, which breaks the empty-seq idiom
   // (`parallelize[Int](Seq())` must not become `createDataset(Seq())`, whose T is
   // Nothing). Keep this in lockstep with isConvertibleOriginCall / badShapeOrigins.
-  private def originReplacement(scExpr: Term, m: String, targs: List[Type], args: List[Term])(implicit
-      doc: SemanticDocument
+  private def originReplacement(scExpr: Term, m: String, targs: List[Type], args: List[Term])(
+      implicit doc: SemanticDocument
   ): String = {
     val targsStr = if (targs.isEmpty) "" else targs.map(_.syntax).mkString("[", ", ", "]")
     if (m == "textFile") s"${sessionName(scExpr)}.read.textFile(${args.head.syntax})"
@@ -258,11 +275,15 @@ class RDDToDatasetMigration extends SemanticRule("RDDToDatasetMigration") {
   private def originPatches(implicit doc: SemanticDocument): List[Patch] =
     doc.tree.collect {
       case t @ Term.Apply(Term.Select(scExpr, name @ Term.Name(m)), args)
-          if (m == "parallelize" || m == "makeRDD" || m == "textFile") && isSparkContextMethod(name) &&
+          if (m == "parallelize" || m == "makeRDD" || m == "textFile") && isSparkContextMethod(
+            name
+          ) &&
             args.lengthCompare(1) == 0 && !hasNamedArg(args) =>
         Patch.replaceTree(t, originReplacement(scExpr, m, Nil, args))
       case t @ Term.Apply(Term.ApplyType(Term.Select(scExpr, name @ Term.Name(m)), targs), args)
-          if (m == "parallelize" || m == "makeRDD" || m == "textFile") && isSparkContextMethod(name) &&
+          if (m == "parallelize" || m == "makeRDD" || m == "textFile") && isSparkContextMethod(
+            name
+          ) &&
             args.lengthCompare(1) == 0 && !hasNamedArg(args) =>
         Patch.replaceTree(t, originReplacement(scExpr, m, targs, args))
       case sel @ Term.Select(qual, name @ Term.Name("rdd")) if isDatasetRdd(name) =>
@@ -271,9 +292,11 @@ class RDDToDatasetMigration extends SemanticRule("RDDToDatasetMigration") {
 
   private def renamePatches(implicit doc: SemanticDocument): List[Patch] =
     doc.tree.collect {
-      case Term.Select(_, name @ Term.Name(v)) if renames.contains(v) && methodOwnedBy(name, rddOwnerPrefixes) =>
+      case Term.Select(_, name @ Term.Name(v))
+          if renames.contains(v) && methodOwnedBy(name, rddOwnerPrefixes) =>
         Patch.replaceTree(name, renames(v))
-      case Term.ApplyInfix(_, op @ Term.Name(v), _, _) if renames.contains(v) && methodOwnedBy(op, rddOwnerPrefixes) =>
+      case Term.ApplyInfix(_, op @ Term.Name(v), _, _)
+          if renames.contains(v) && methodOwnedBy(op, rddOwnerPrefixes) =>
         Patch.replaceTree(op, renames(v))
     }
 
@@ -283,7 +306,7 @@ class RDDToDatasetMigration extends SemanticRule("RDDToDatasetMigration") {
   private def isSparkContextReceiver(scExpr: Term): Boolean =
     scExpr match {
       case Term.Select(_, Term.Name("sparkContext")) => true
-      case _ => false
+      case _                                         => false
     }
 
   /**
@@ -328,9 +351,9 @@ class RDDToDatasetMigration extends SemanticRule("RDDToDatasetMigration") {
     def enclosingStats(anc: Tree): List[Stat] = anc match {
       case b: Term.Block => b.stats
       case tpl: Template => tpl.stats
-      case s: Source => s.stats
-      case p: Pkg => p.stats
-      case _ => Nil
+      case s: Source     => s.stats
+      case p: Pkg        => p.stats
+      case _             => Nil
     }
     var cur = t.parent
     var found = false
@@ -346,7 +369,8 @@ class RDDToDatasetMigration extends SemanticRule("RDDToDatasetMigration") {
     val rddOps: List[OpSite] = doc.tree.collect {
       case Term.Apply(Term.Select(recv, name), args) if rddOpName(name).isDefined =>
         OpSite(name, name.value, recv, args)
-      case Term.Apply(Term.ApplyType(Term.Select(recv, name), _), args) if rddOpName(name).isDefined =>
+      case Term.Apply(Term.ApplyType(Term.Select(recv, name), _), args)
+          if rddOpName(name).isDefined =>
         OpSite(name, name.value, recv, args)
       case Term.ApplyInfix(lhs, op, _, args) if rddOpName(op).isDefined =>
         OpSite(op, op.value, lhs, args)
@@ -360,43 +384,96 @@ class RDDToDatasetMigration extends SemanticRule("RDDToDatasetMigration") {
     if (rddOps.isEmpty && etas.isEmpty) {
       Patch.empty
     } else {
-      def arityBad(o: OpSite): Boolean = maxSafeArgs.get(o.op).exists(max => o.args.lengthCompare(max) > 0)
+      def arityBad(o: OpSite): Boolean =
+        maxSafeArgs.get(o.op).exists(max => o.args.lengthCompare(max) > 0)
 
       val anchor: Tree = (rddOps.map(_.node) ++ etas).head
 
       // Blocker categories, in priority order; the first non-empty one is reported.
       val unsupported: List[(Tree, String, String)] =
-        rddOps.filter(o => !nameIdenticalOps.contains(o.op) && !renames.contains(o.op))
+        rddOps
+          .filter(o => !nameIdenticalOps.contains(o.op) && !renames.contains(o.op))
           .map(o => (o.node: Tree, o.op, manualReasons.getOrElse(o.op, genericReason)))
       val arity: List[(Tree, String, String)] =
-        rddOps.filter(arityBad)
-          .map(o => (o.node: Tree, o.op, s"Dataset.${o.op} does not accept this many arguments; migrate manually"))
+        rddOps
+          .filter(arityBad)
+          .map(o =>
+            (
+              o.node: Tree,
+              o.op,
+              s"Dataset.${o.op} does not accept this many arguments; migrate manually"
+            )
+          )
       val badOrigins: List[(Tree, String, String)] =
         badShapeOrigins.map { case (n, m) =>
-          (n: Tree, m, s"only the single-argument $m form is converted (Dataset can't reproduce RDD partition slicing); migrate manually")
+          (
+            n: Tree,
+            m,
+            s"only the single-argument $m form is converted (Dataset can't reproduce RDD partition slicing); migrate manually"
+          )
         }
       val unsafeBinary: List[(Tree, String, String)] =
-        rddOps.filter(o => binaryDatasetArgOps.contains(o.op))
-          .filterNot(o => tracesToDataset(o.receiver, Set.empty) && o.args.forall(a => tracesToDataset(a, Set.empty)))
-          .map(o => (o.node: Tree, o.op, s"an operand of ${o.op} does not trace to a convertible origin, so it would remain an RDD; migrate manually"))
+        rddOps
+          .filter(o => binaryDatasetArgOps.contains(o.op))
+          .filterNot(o =>
+            tracesToDataset(o.receiver, Set.empty) && o.args
+              .forall(a => tracesToDataset(a, Set.empty))
+          )
+          .map(o =>
+            (
+              o.node: Tree,
+              o.op,
+              s"an operand of ${o.op} does not trace to a convertible origin, so it would remain an RDD; migrate manually"
+            )
+          )
       val etaBlocks: List[(Tree, String, String)] =
-        etas.map(n => (n: Tree, n.value, s"${n.value} is used as a method value (eta-expansion); the Dataset method is overloaded, so this is ambiguous -- migrate manually"))
+        etas.map(n =>
+          (
+            n: Tree,
+            n.value,
+            s"${n.value} is used as a method value (eta-expansion); the Dataset method is overloaded, so this is ambiguous -- migrate manually"
+          )
+        )
       val rddTypeBlock: List[(Tree, String, String)] =
-        if (hasRddType) List((anchor, "RDD", "this file declares an RDD[...] type; rewriting the chain to a Dataset would leave that annotation dangling -- migrate manually"))
+        if (hasRddType)
+          List(
+            (
+              anchor,
+              "RDD",
+              "this file declares an RDD[...] type; rewriting the chain to a Dataset would leave that annotation dangling -- migrate manually"
+            )
+          )
         else Nil
       val ambiguousSession: List[(Tree, String, String)] =
         // Count DISTINCT sessions, not total imports: the same `import s.implicits._`
         // repeated across methods (the norm once the import must be in scope per site)
         // is one unambiguous session, not two.
-        if (implicitsSessions.distinct.lengthCompare(1) > 0) List((anchor, "implicits", "more than one distinct `implicits._` session makes the target SparkSession ambiguous; migrate manually"))
+        if (implicitsSessions.distinct.lengthCompare(1) > 0)
+          List(
+            (
+              anchor,
+              "implicits",
+              "more than one distinct `implicits._` session makes the target SparkSession ambiguous; migrate manually"
+            )
+          )
         else Nil
 
-      val blockers = List(unsupported, arity, badOrigins, unsafeBinary, etaBlocks, rddTypeBlock, ambiguousSession)
+      val blockers = List(
+        unsupported,
+        arity,
+        badOrigins,
+        unsafeBinary,
+        etaBlocks,
+        rddTypeBlock,
+        ambiguousSession
+      )
         .find(_.nonEmpty)
         .getOrElse(Nil)
 
       if (blockers.nonEmpty) {
-        blockers.map { case (n, op, reason) => Patch.lint(RDDMigrationBlocked(n, op, reason)) }.asPatch
+        blockers.map { case (n, op, reason) =>
+          Patch.lint(RDDMigrationBlocked(n, op, reason))
+        }.asPatch
       } else {
         // Per-site, not file-wide: an import inside another method wouldn't put
         // the encoders (or the session name) in scope at this call.

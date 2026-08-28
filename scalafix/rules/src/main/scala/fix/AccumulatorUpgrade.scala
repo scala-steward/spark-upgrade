@@ -29,7 +29,8 @@ class AccumulatorUpgrade extends SemanticRule("AccumulatorUpgrade") {
                   Seq(
                     Patch.lint(AccMigrationGuide(e.pos)),
                     Patch.addLeft(e, "/*"),
-                    Patch.addRight(e, "*/ null")).asPatch
+                    Patch.addRight(e, "*/ null")
+                  ).asPatch
                 case q"0L" =>
                   Patch.replaceTree(ns, s"${sc}.longAccumulator")
                 case utils.longMatcher(initialValue) =>
@@ -40,18 +41,20 @@ class AccumulatorUpgrade extends SemanticRule("AccumulatorUpgrade") {
                   Seq(
                     Patch.lint(AccMigrationGuide(e.pos)),
                     Patch.addLeft(e, "/*"),
-                    Patch.addRight(e, "*/ null")).asPatch
+                    Patch.addRight(e, "*/ null")
+                  ).asPatch
               }
             case List(param, name) =>
               Seq(
                 Patch.lint(AccMigrationGuide(e.pos)),
                 Patch.addLeft(e, "/*"),
-                Patch.addRight(e, "*/ null")).asPatch
+                Patch.addRight(e, "*/ null")
+              ).asPatch
           }
         case elem @ _ =>
           elem.children match {
             case Nil => Patch.empty
-            case _ => elem.children.map(matchOnTree).asPatch
+            case _   => elem.children.map(matchOnTree).asPatch
           }
       }
     }

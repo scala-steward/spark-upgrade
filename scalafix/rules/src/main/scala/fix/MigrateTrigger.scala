@@ -24,7 +24,7 @@ class MigrateTrigger extends SemanticRule("MigrateTrigger") {
         case elem @ _ =>
           elem.children match {
             case Nil => Patch.empty
-            case _ => elem.children.map(matchOnTree).asPatch
+            case _   => elem.children.map(matchOnTree).asPatch
           }
       }
     }

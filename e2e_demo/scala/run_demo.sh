@@ -25,7 +25,9 @@ cd ./sparkdemoproject && sbt clean && cd ..
 
 INITIAL_VERSION=${INITIAL_VERSION:-2.4.8}
 TARGET_VERSION=${TARGET_VERSION:-3.3.1}
-SCALAFIX_RULES_VERSION=${SCALAFIX_RULES_VERSION:-0.1.15}
+# Fallback for running the demo by hand; CI overrides this with the version it
+# just built. Exported so child helper scripts see the same value.
+export SCALAFIX_RULES_VERSION=${SCALAFIX_RULES_VERSION:-0.1.15}
 outputTable="local.newest_farttable"
 
 SPARK2_DETAILS="spark-2.4.8-bin-without-hadoop-scala-2.12"
@@ -63,10 +65,10 @@ cp -af build.sbt build.sbt.bak
 cat build.sbt.bak | \
   python -c 'import re,sys;print(re.sub(r"name :=\s*\"(.*?)\"", "name :=\"\\1-3\"", sys.stdin.read()))' > build.sbt
 cat >> build.sbt <<- EOM
-scalafixDependencies in ThisBuild +=
+ThisBuild / scalafixDependencies +=
   "com.holdenkarau" %% "spark-scalafix-rules-2.4.8" % "${SCALAFIX_RULES_VERSION}"
-semanticdbEnabled in ThisBuild := true
-semanticdbVersion in ThisBuild := scalafixSemanticdb.revision
+ThisBuild / semanticdbEnabled := true
+ThisBuild / semanticdbVersion := scalafixSemanticdb.revision
 EOM
 mkdir -p project
 cat >> project/plugins.sbt <<- EOM

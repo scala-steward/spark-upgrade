@@ -5,16 +5,14 @@ These instructions are written for sbt, there will be instructions for other bui
 I've tried to update your build file for you, but there might be some mistakes. What I've tried to do is:
 
 ``
-scalafixDependencies in ThisBuild +=
+ThisBuild / scalafixDependencies +=
   "com.holdenkarau" %% "spark-scalafix-rules-2.4.8" % "0.1.15"
-semanticdbEnabled in ThisBuild := true
+ThisBuild / semanticdbEnabled := true
 ``
 
 Then add:
 
 ``
-resolvers += Resolver.sonatypeRepo("releases")
-
 addSbtPlugin("ch.epfl.scala" % "sbt-scalafix" % "0.10.4")
 ``
 

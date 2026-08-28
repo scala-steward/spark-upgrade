@@ -28,26 +28,28 @@ class GroupByKeyWarn extends SemanticRule("GroupByKeyWarn") {
     val funcToDS = "toDS"
     val agrFunCount = "count"
 
-    if (doc.input.text.contains("groupByKey") && doc.input.text.contains("value") &&
-      doc.input.text.contains("org.apache.spark.sql")) {
+    if (
+      doc.input.text.contains("groupByKey") && doc.input.text.contains("value") &&
+      doc.input.text.contains("org.apache.spark.sql")
+    ) {
       doc.tree.collect {
         case matcher(gbk) =>
           Patch.lint(GroupByKeyWarning(gbk))
         case t @ Term.Apply(
-            Term.Select(
-              Term.Apply(
-                Term.Select(
-                  Term.Apply(Term.Select(_, _ @Term.Name(fName)), _),
-                  gbk @ Term.Name(name)
+              Term.Select(
+                Term.Apply(
+                  Term.Select(
+                    Term.Apply(Term.Select(_, _ @Term.Name(fName)), _),
+                    gbk @ Term.Name(name)
+                  ),
+                  _
                 ),
-                _
+                _ @Term.Name(oprName)
               ),
-              _ @Term.Name(oprName)
-            ),
-            _
-          )
-          if grpByKey.equals(name) && funcToDS.equals(fName) && agrFunCount
-            .equals(oprName) =>
+              _
+            )
+            if grpByKey.equals(name) && funcToDS.equals(fName) && agrFunCount
+              .equals(oprName) =>
           Patch.lint(GroupByKeyWarning(t))
       }.asPatch
     } else {
